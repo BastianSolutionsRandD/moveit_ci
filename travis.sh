@@ -72,7 +72,7 @@ function run_docker() {
     -v ${CCACHE_DIR:-$HOME/.ccache}:/root/.ccache \
     -t \
     -w /root/$REPOSITORY_NAME \
-    $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh
+    $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/docker.sh
   result=$?
 
   echo
@@ -160,6 +160,11 @@ function run_xvfb() {
 
 function prepare_ros_workspace() {
   travis_fold start ros.ws "Setting up ROS workspace"
+  # Install wstool. Pipe to null to avoid a lot of noise and problems with pip
+  sudo -H pip install --upgrade pip  > /dev/null
+  sudo pip install -U wstool  > /dev/null
+
+  # Create workspace in root Travis environment where the SSH keys are easily accessible
   travis_run_simple mkdir -p $ROS_WS/src
   travis_run_simple cd $ROS_WS/src
 
@@ -216,10 +221,9 @@ function prepare_ros_workspace() {
       -O $CI_SOURCE_PATH/.clang-tidy
     travis_run --display "Applying the following clang-tidy checks:" cat $CI_SOURCE_PATH/.clang-tidy
   fi
+}
 
-  # run BEFORE_SCRIPT, which might modify the workspace further
-  run_script BEFORE_SCRIPT
-
+function install_dependencies() {
   # For debugging: list the files in workspace's source folder
   travis_run_simple cd $ROS_WS/src
   travis_run --title "List files in ROS workspace's source folder" ls --color=auto -alhF
@@ -291,6 +295,9 @@ if [ -z "${TEST_PKG:-}" ]; then
   touch ${MOVEIT_CI_DIR}/test_pkgs/CATKIN_IGNORE # not a unit test build
 fi
 
+export ROS_WS=${ROS_WS:-/root/ros_ws} # default location of ROS workspace, if not defined differently in yaml
+prepare_ros_workspace
+
 # Re-run the script in a Docker container
 if [ "${IN_DOCKER:-0}" != "1" ]; then run_docker; fi
 echo -e $(colorize YELLOW "Testing branch '${TRAVIS_BRANCH:-}' of '${REPOSITORY_NAME:-}' on ROS '$ROS_DISTRO'")
@@ -298,7 +305,6 @@ echo -e $(colorize YELLOW "Testing branch '${TRAVIS_BRANCH:-}' of '${REPOSITORY_
 # If we are here, we can assume we are inside a Docker container
 echo "Inside Docker container"
 
-export ROS_WS=${ROS_WS:-/root/ros_ws} # default location of ROS workspace, if not defined differently in docker container
 CMAKE_ARGS=""
 
 # Prepend current dir if path is not yet absolute
@@ -320,11 +326,11 @@ test ${WARNINGS_OK:=true} == true -o "$WARNINGS_OK" == 1 -o "$WARNINGS_OK" == ye
 travis_run --title "CXX compiler info" $CXX --version
 
 update_system
-prepare_or_run_early_tests
 run_xvfb
-prepare_ros_workspace
+# run BEFORE_SCRIPT, which might modify the workspace further
+run_script BEFORE_SCRIPT
+install_dependencies
 prepare_or_run_early_tests
-
 build_workspace
 test_workspace
 
