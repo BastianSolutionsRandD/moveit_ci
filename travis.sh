@@ -31,6 +31,8 @@ function run_script() {
 }
 
 function run_docker() {
+  pushd .
+  travis_run_simple cd $ROS_WS
   run_script BEFORE_DOCKER_SCRIPT
 
   # Choose the docker container to use
@@ -81,6 +83,8 @@ function run_docker() {
     124) echo -e $(colorize YELLOW "Timed out, but try again! Having saved cache results, Travis will probably succeed next time.") ;;
     *) echo -e $(colorize RED "Travis script finished with errors.") ;;
   esac
+  popd
+
   exit $result
 }
 
@@ -164,6 +168,7 @@ function prepare_ros_workspace() {
   sudo -H pip install --upgrade pip  > /dev/null
   sudo pip install -U wstool  > /dev/null
 
+  pushd .
   # Create workspace in root Travis environment where the SSH keys are easily accessible
   travis_run_simple mkdir -p $ROS_WS/src
   travis_run_simple cd $ROS_WS/src
@@ -205,7 +210,13 @@ function prepare_ros_workspace() {
   if [ "$(dirname $CI_SOURCE_PATH)" != $PWD ] ; then
     travis_run_simple --title "Symlinking to-be-tested repo $CI_SOURCE_PATH into ROS workspace" ln -s $CI_SOURCE_PATH .
   fi
+  popd
+fi
 
+function run_clang_tidy()
+{
+  pushd .
+  travis_run_simple cd $ROS_WS/src
   # Fetch clang-tidy configs
   if [ "$TEST" == clang-tidy-check ] ; then
     # clang-tidy-check essentially runs during the build process for *all* packages.
@@ -221,9 +232,11 @@ function prepare_ros_workspace() {
       -O $CI_SOURCE_PATH/.clang-tidy
     travis_run --display "Applying the following clang-tidy checks:" cat $CI_SOURCE_PATH/.clang-tidy
   fi
+  popd
 }
 
 function install_dependencies() {
+  pushd .
   # For debugging: list the files in workspace's source folder
   travis_run_simple cd $ROS_WS/src
   travis_run --title "List files in ROS workspace's source folder" ls --color=auto -alhF
@@ -237,9 +250,13 @@ function install_dependencies() {
   # Validate that we have some packages to build
   test -z "$(catkin list)" && echo -e "$(colorize RED Workspace $ROS_WS has no packages to build. Terminating.)" && exit 1
   travis_fold end ros.ws
+  popd
 }
 
 function build_workspace() {
+  pushd .
+  travis_run_simple cd $ROS_WS
+
   echo -e $(colorize GREEN Building Workspace)
   # Configure catkin
   travis_run --title "catkin config $CMAKE_ARGS" catkin config --extend "${ROS_UNDERLAY:-/opt/ros/$ROS_DISTRO}" --install --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-O3" $CMAKE_ARGS --
@@ -252,10 +269,13 @@ function build_workspace() {
 
   # Allow to verify ccache usage
   travis_run --title "ccache statistics" ccache -s
+  popd
 }
 
 function test_workspace() {
+  pushd .
   echo -e $(colorize GREEN Testing Workspace)
+  travis_run_simple cd $ROS_WS
   travis_run_simple --title "Sourcing newly built install space" source install/setup.bash
 
   # Consider TEST_BLACKLIST
@@ -283,6 +303,7 @@ function test_workspace() {
 
   # Show test results summary and throw error if necessary
   catkin_test_results || exit 2
+  popd
 }
 
 ###########################################################################################################
@@ -297,7 +318,7 @@ fi
 
 export ROS_WS=${ROS_WS:-/root/ros_ws} # default location of ROS workspace, if not defined differently in yaml
 prepare_ros_workspace
-
+run_clang_tidy
 # Re-run the script in a Docker container
 if [ "${IN_DOCKER:-0}" != "1" ]; then run_docker; fi
 echo -e $(colorize YELLOW "Testing branch '${TRAVIS_BRANCH:-}' of '${REPOSITORY_NAME:-}' on ROS '$ROS_DISTRO'")
@@ -327,8 +348,10 @@ travis_run --title "CXX compiler info" $CXX --version
 
 update_system
 run_xvfb
+
 # run BEFORE_SCRIPT, which might modify the workspace further
 run_script BEFORE_SCRIPT
+
 install_dependencies
 prepare_or_run_early_tests
 build_workspace
