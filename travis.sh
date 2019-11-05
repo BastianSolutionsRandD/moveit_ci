@@ -19,6 +19,13 @@ MOVEIT_CI_TRAVIS_TIMEOUT=${MOVEIT_CI_TRAVIS_TIMEOUT:-47}  # 50min minus safety m
 # Helper functions
 source ${MOVEIT_CI_DIR}/util.sh
 
+# Adding the SSH key to the ssh-agent
+setup_ssh_keys()
+{
+  eval "$(ssh-agent -s)"
+  ssh-add ~/.ssh/id_rsa
+}
+
 # usage: run_script BEFORE_SCRIPT  or run_script BEFORE_DOCKER_SCRIPT
 function run_script() {
    local script
@@ -49,6 +56,7 @@ function run_docker() {
     echo -e $(colorize BOLD "Starting Docker image: $DOCKER_IMAGE")
     travis_run docker pull $DOCKER_IMAGE
 
+    setup_ssh_keys
     # Setting up the ssh
     local auth_dir
     auth_dir=$(dirname "$SSH_AUTH_SOCK")
@@ -288,13 +296,6 @@ function test_workspace() {
 
    # Show test results summary and throw error if necessary
    catkin_test_results || exit 2
-}
-
-setup_ssh_keys()
-{
-  # Adding the SSH key to the ssh-agent
-  eval "$(ssh-agent -s)"
-  ssh-add ~/.ssh/id_rsa
 }
 
 
