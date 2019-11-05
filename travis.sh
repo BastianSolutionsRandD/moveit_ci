@@ -49,6 +49,10 @@ function run_docker() {
     echo -e $(colorize BOLD "Starting Docker image: $DOCKER_IMAGE")
     travis_run docker pull $DOCKER_IMAGE
 
+    # Setting up the ssh
+    local auth_dir
+    auth_dir=$(dirname "$SSH_AUTH_SOCK")
+
     # Run travis.sh again, but now within Docker container
     docker run \
         -e IN_DOCKER=1 \
@@ -69,6 +73,9 @@ function run_docker() {
         -e CXX=${CXX_FOR_BUILD:-${CXX:-c++}} \
         -e CFLAGS \
         -e CXXFLAGS \
+        -e "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" \
+        -v "$auth_dir:$auth_dir" \
+        -v $HOME/.ssh:/root/.ssh \
         -v $(pwd):/root/$REPOSITORY_NAME \
         -v ${CCACHE_DIR:-$HOME/.ccache}:/root/.ccache \
         -t \
@@ -93,7 +100,7 @@ function update_system() {
    # Make sure the packages are up-to-date
    travis_run --retry apt-get -qq dist-upgrade
    # Install required packages (if not yet provided by docker container)
-   travis_run --retry apt-get -qq install -y wget sudo python-catkin-tools xvfb mesa-utils ccache
+   travis_run --retry apt-get -qq install -y wget sudo python-catkin-tools xvfb mesa-utils ccache ssh
 
    # Install clang-format if needed
    [[ "${TEST:=}" == *clang-format* ]] && travis_run --retry apt-get -qq install -y clang-format-3.9
@@ -283,6 +290,14 @@ function test_workspace() {
    catkin_test_results || exit 2
 }
 
+setup_ssh_keys()
+{
+  # Adding the SSH key to the ssh-agent
+  eval "$(ssh-agent -s)"
+  ssh-add ~/.ssh/id_rsa
+}
+
+
 ###########################################################################################################
 # main program
 
@@ -322,12 +337,13 @@ test ${WARNINGS_OK:=true} == true -o "$WARNINGS_OK" == 1 -o "$WARNINGS_OK" == ye
 travis_run --title "CXX compiler info" $CXX --version
 
 update_system
+setup_ssh_keys
 run_xvfb
 prepare_ros_workspace
 run_early_tests
 
-build_workspace
-test_workspace
+# build_workspace
+# test_workspace
 
 # Run all remaining tests
 for t in $(unify_list " ,;" "$TEST") ; do
