@@ -342,8 +342,8 @@ run_xvfb
 prepare_ros_workspace
 run_early_tests
 
-# build_workspace
-# test_workspace
+build_workspace
+test_workspace
 
 # Run all remaining tests
 for t in $(unify_list " ,;" "$TEST") ; do
