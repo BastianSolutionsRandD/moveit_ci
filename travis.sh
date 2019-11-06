@@ -363,9 +363,6 @@ travis_run --title "CXX compiler info" $CXX --version
 
 update_system
 setup_ssh_keys
-# ssh -vT git@github.com
-# echo -e "Host github.com\n IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
-# chmod 600 ~/.ssh/config
 run_xvfb
 prepare_ros_workspace
 run_early_tests
