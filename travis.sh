@@ -37,6 +37,14 @@ function run_script() {
    fi
 }
 
+# work-around for https://github.com/moby/moby/issues/34096
+# ensures that copied files are owned by the target user
+function docker_cp {
+  set -o pipefail
+  tar --numeric-owner --owner="${docker_uid:-root}" --group="${docker_gid:-root}" -c -f - -C "$(dirname "$1")" "$(basename "$1")" | docker cp - "$2"
+  set +o pipefail
+}
+
 function run_docker() {
    run_script BEFORE_DOCKER_SCRIPT
 
@@ -57,12 +65,15 @@ function run_docker() {
     travis_run docker pull $DOCKER_IMAGE
 
     setup_ssh_keys
-    # Setting up the ssh
+    # Forward ssh agents
+    local -a run_opts
     local auth_dir
     auth_dir=$(dirname "$SSH_AUTH_SOCK")
-
+    run_opts+=(-v "$auth_dir:$auth_dir" -e "SSH_AUTH_SOCK=$SSH_AUTH_SOCK")
+    
+    local cid
     # Run travis.sh again, but now within Docker container
-    docker run \
+    cid=$(docker create \
         -e IN_DOCKER=1 \
         -e MOVEIT_CI_TRAVIS_TIMEOUT=$(travis_timeout $MOVEIT_CI_TRAVIS_TIMEOUT) \
         -e BEFORE_SCRIPT \
@@ -81,14 +92,22 @@ function run_docker() {
         -e CXX=${CXX_FOR_BUILD:-${CXX:-c++}} \
         -e CFLAGS \
         -e CXXFLAGS \
-        -e "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" \
-        -v "$auth_dir:$auth_dir" \
-        -v $HOME/.ssh:/root/.ssh \
         -v $(pwd):/root/$REPOSITORY_NAME \
         -v ${CCACHE_DIR:-$HOME/.ccache}:/root/.ccache \
         -t \
         -w /root/$REPOSITORY_NAME \
+        "${run_opts[@]}" \
         $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh
+    
+    # pass common credentials to container
+    for d in .docker .ssh .subversion; do
+      if [ -d "$HOME/$d" ]; then
+        docker_cp "$HOME/$d" "$cid:/root/"
+      fi
+    done
+    
+    docker start -a "$cid"
+    
     result=$?
 
     echo
@@ -339,8 +358,8 @@ travis_run --title "CXX compiler info" $CXX --version
 
 update_system
 setup_ssh_keys
-echo -e "Host github.com\n IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
-chmod 600 ~/.ssh/config
+# echo -e "Host github.com\n IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
+# chmod 600 ~/.ssh/config
 run_xvfb
 prepare_ros_workspace
 run_early_tests
