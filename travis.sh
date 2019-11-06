@@ -97,7 +97,7 @@ function run_docker() {
         -t \
         -w /root/$REPOSITORY_NAME \
         "${run_opts[@]}" \
-        $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh
+        $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh)
     
     # pass common credentials to container
     for d in .docker .ssh .subversion; do
