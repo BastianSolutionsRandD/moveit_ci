@@ -24,7 +24,6 @@ setup_ssh_keys()
 {
   eval "$(ssh-agent -s)"
   ssh-add ~/.ssh/id_rsa
-  cat ~/.ssh/id_rsa
 }
 
 # usage: run_script BEFORE_SCRIPT  or run_script BEFORE_DOCKER_SCRIPT
