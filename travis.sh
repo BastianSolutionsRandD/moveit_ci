@@ -24,7 +24,7 @@ setup_ssh_keys()
 {
   eval "$(ssh-agent -s)"
   ssh-add ~/.ssh/id_rsa
-  ssh-add -l
+  ssh-add -l -E md5
 }
 
 # usage: run_script BEFORE_SCRIPT  or run_script BEFORE_DOCKER_SCRIPT
@@ -364,6 +364,7 @@ travis_run --title "CXX compiler info" $CXX --version
 
 update_system
 setup_ssh_keys
+ssh -vT git@github.com
 # echo -e "Host github.com\n IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
 # chmod 600 ~/.ssh/config
 run_xvfb
