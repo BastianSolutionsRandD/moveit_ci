@@ -339,6 +339,7 @@ travis_run --title "CXX compiler info" $CXX --version
 
 update_system
 setup_ssh_keys
+chmod 600 ~/.ssh/config
 run_xvfb
 prepare_ros_workspace
 run_early_tests
