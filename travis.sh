@@ -100,6 +100,11 @@ function run_docker() {
         "${run_opts[@]}" \
         $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh)
     
+    # detect user inside container
+    local docker_image
+    docker_image=$(docker inspect --format='{{.Config.Image}}' "$cid")
+    docker_uid=$(docker run --rm "${run_opts[@]}" "$docker_image" id -u)
+    docker_gid=$(docker run --rm "${run_opts[@]}" "$docker_image" id -g)
     # pass common credentials to container
     for d in .docker .ssh .subversion; do
       if [ -d "$HOME/$d" ]; then
