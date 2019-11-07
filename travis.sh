@@ -83,7 +83,7 @@ function run_docker() {
         -t \
         -w /root/$REPOSITORY_NAME \
         "${run_opts[@]}" \
-        $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh)
+        $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh
     result=$?
 
     echo
