@@ -64,13 +64,6 @@ function run_docker() {
     echo -e $(colorize BOLD "Starting Docker image: $DOCKER_IMAGE")
     travis_run docker pull $DOCKER_IMAGE
 
-    setup_ssh_keys
-    # Forward ssh agents
-    local -a run_opts
-    local auth_dir
-    auth_dir=$(dirname "$SSH_AUTH_SOCK")
-    run_opts+=(-v "$auth_dir:$auth_dir" -e "SSH_AUTH_SOCK=$SSH_AUTH_SOCK")
-
     local cid
     # Run travis.sh again, but now within Docker container
     cid=$(docker create \
