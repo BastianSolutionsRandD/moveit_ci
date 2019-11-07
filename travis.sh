@@ -19,13 +19,6 @@ MOVEIT_CI_TRAVIS_TIMEOUT=${MOVEIT_CI_TRAVIS_TIMEOUT:-47}  # 50min minus safety m
 # Helper functions
 source ${MOVEIT_CI_DIR}/util.sh
 
-# Adding the SSH key to the ssh-agent
-setup_ssh_keys()
-{
-  eval "$(ssh-agent -s)"
-  ssh-add ~/.ssh/id_rsa
-}
-
 # usage: run_script BEFORE_SCRIPT  or run_script BEFORE_DOCKER_SCRIPT
 function run_script() {
    local script
@@ -360,7 +353,6 @@ test ${WARNINGS_OK:=true} == true -o "$WARNINGS_OK" == 1 -o "$WARNINGS_OK" == ye
 travis_run --title "CXX compiler info" $CXX --version
 
 update_system
-setup_ssh_keys
 run_xvfb
 prepare_ros_workspace
 run_early_tests
