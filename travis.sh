@@ -20,10 +20,10 @@ MOVEIT_CI_TRAVIS_TIMEOUT=${MOVEIT_CI_TRAVIS_TIMEOUT:-47}  # 50min minus safety m
 source ${MOVEIT_CI_DIR}/util.sh
 
 # Adding the SSH key to the ssh-agent	
-setup_ssh_keys()	
-{	
-  eval "$(ssh-agent -s)"	
-  ssh-add ~/.ssh/id_rsa	
+setup_ssh_keys()
+{
+  eval "$(ssh-agent -s)"
+  ssh-add ~/.ssh/id_rsa
 }
 
 # usage: run_script BEFORE_SCRIPT  or run_script BEFORE_DOCKER_SCRIPT
