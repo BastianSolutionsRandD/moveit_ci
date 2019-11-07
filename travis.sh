@@ -30,14 +30,6 @@ function run_script() {
    fi
 }
 
-# work-around for https://github.com/moby/moby/issues/34096
-# ensures that copied files are owned by the target user
-function docker_cp {
-  set -o pipefail
-  tar --numeric-owner --owner="${docker_uid:-root}" --group="${docker_gid:-root}" -c -f - -C "$(dirname "$1")" "$(basename "$1")" | docker cp - "$2"
-  set +o pipefail
-}
-
 function run_docker() {
    run_script BEFORE_DOCKER_SCRIPT
 
@@ -67,7 +59,7 @@ function run_docker() {
     
     local cid
     # Run travis.sh again, but now within Docker container
-    cid=$(docker create \
+    docker run \
         -e IN_DOCKER=1 \
         -e MOVEIT_CI_TRAVIS_TIMEOUT=$(travis_timeout $MOVEIT_CI_TRAVIS_TIMEOUT) \
         -e BEFORE_SCRIPT \
@@ -92,19 +84,6 @@ function run_docker() {
         -w /root/$REPOSITORY_NAME \
         "${run_opts[@]}" \
         $DOCKER_IMAGE /root/$REPOSITORY_NAME/.moveit_ci/travis.sh)
-
-    # detect user inside container
-    local docker_image
-    docker_image=$(docker inspect --format='{{.Config.Image}}' "$cid")
-    docker_uid=$(docker run --rm "${run_opts[@]}" "$docker_image" id -u)
-    docker_gid=$(docker run --rm "${run_opts[@]}" "$docker_image" id -g)
-    # pass common credentials to container
-    if [ -d "$HOME/.ssh" ]; then
-      docker_cp "$HOME/.ssh" "$cid:/root/"
-    fi
-
-    docker start -a "$cid"
-
     result=$?
 
     echo
