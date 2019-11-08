@@ -94,8 +94,8 @@ function run_docker() {
     # detect user inside container
     local docker_image
     docker_image=$(docker inspect --format='{{.Config.Image}}' "$cid")
-    docker_uid=$(docker run --rm "${run_opts[@]}" "$docker_image" id -u)
-    docker_gid=$(docker run --rm "${run_opts[@]}" "$docker_image" id -g)
+    docker_uid=$(docker run --rm "$docker_image" id -u)
+    docker_gid=$(docker run --rm "$docker_image" id -g)
     # pass common credentials to container
     if [ -d "$HOME/.ssh" ]; then
       docker_cp "$HOME/.ssh" "$cid:/root/"
