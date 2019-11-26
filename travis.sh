@@ -308,7 +308,7 @@ function test_workspace() {
    # Build tests
    travis_run_wait --title "catkin build tests" catkin build --no-status --summarize --make-args tests --
    # Run tests, suppressing the output (confuses Travis display?)
-   travis_run_wait --title "catkin run_tests" "catkin build --catkin-make-args run_tests -- --no-status --summarize 2>/dev/null"
+   travis_run_wait --title "catkin run_tests" "catkin build --verbose --catkin-make-args run_tests --"
 
    # Show failed tests
    travis_fold start test.results "catkin_test_results"
