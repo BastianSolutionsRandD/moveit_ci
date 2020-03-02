@@ -131,11 +131,13 @@ function run_docker() {
 function update_system() {
    travis_fold start update "Updating system packages"
    # Add PickNik's buildfarm source list
-   travis_run sh -c 'echo "deb http://picknik.s3.amazonaws.com/building/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/moveit-latest.list'
-   travis_run curl -sSL http://picknik.s3.amazonaws.com/public.key | sudo apt-key add -
+   sh -c 'echo "deb http://picknik.s3.amazonaws.com/building/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/moveit-latest.list'
+   travis_run --retry curl -sSL http://picknik.s3.amazonaws.com/public.key | sudo apt-key add -
    # Update the sources
    travis_run --retry apt-get -qq update
-
+   # TODO(JafarAbdi): Why this's not installed automatically
+   travis_run --retry apt purge -y -qq ros-melodic-moveit*
+   # travis_run --retry apt install -y ros-melodic-moveit-ros-occupancy-map-monitor
    # Make sure the packages are up-to-date
    travis_run --retry apt-get -qq dist-upgrade
    # Install required packages (if not yet provided by docker container)
