@@ -130,6 +130,9 @@ function run_docker() {
 
 function update_system() {
    travis_fold start update "Updating system packages"
+   # Add PickNik's buildfarm source list
+   travis_run sh -c 'echo "deb http://picknik.s3.amazonaws.com/building/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/moveit-latest.list'
+   travis_run curl -sSL http://picknik.s3.amazonaws.com/public.key | sudo apt-key add -
    # Update the sources
    travis_run --retry apt-get -qq update
 
