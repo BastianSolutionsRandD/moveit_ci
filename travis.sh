@@ -98,6 +98,7 @@ function run_docker() {
         -e CFLAGS \
         -e CXXFLAGS \
         -e CCACHE_MAXSIZE \
+        -e CLANG_FORMAT_EXECUTABLE \
         ${CI_ENV_PARAMS:-} \
         -v $(pwd):/root/$REPOSITORY_NAME \
         -v ${CCACHE_DIR:-$HOME/.ccache}:/root/.ccache \
