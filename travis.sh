@@ -188,6 +188,9 @@ function run_early_tests() {
             ;;
          clang-tidy-fix)  # run clang-tidy -fix and report code changes in the end
             CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+            build_workspace
+            (source ${MOVEIT_CI_DIR}/check_clang_tidy.sh)
+            EARLY_RESULT=$(( ${EARLY_RESULT:-0} + $? ))
             ;;
          abi)  # abi-checker requires debug symbols
             CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=\"-g -Og\""
