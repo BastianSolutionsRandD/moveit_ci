@@ -73,6 +73,11 @@ function run_docker() {
     fi
 
     echo -e $(colorize BOLD "Starting Docker image: $DOCKER_IMAGE")
+    if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
+      set +x
+        echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+      set -x
+    fi
     travis_run docker pull $DOCKER_IMAGE
 
     local cid
